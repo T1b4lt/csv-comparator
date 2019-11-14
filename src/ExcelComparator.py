@@ -1,7 +1,7 @@
 import argparse
-import os
 
 import pandas as pd
+from tqdm import tqdm
 
 
 def main(cliargs):
@@ -16,24 +16,34 @@ def main(cliargs):
 	file1 = pd.read_csv(file1_path, delimiter=";")
 	file2 = pd.read_csv(file2_path, delimiter=";")
 
-	print(file1.head())
-	print(file2.head())
+	print(file1.head(5))
+	print(file2.head(5))
 
-	diff = pd.concat([file1, file2])
+	diff = pd.concat([file1, file2], sort=False)
 	diff = diff.reset_index(drop=True)
 	diff_gpby = diff.groupby(list(diff.columns))
 
-	idx = [x[0] for x in diff_gpby.groups.values() if len(x) == 1]
+	print("Collecting diffs...")
+	idx = [x[0] for x in diff_gpby.groups.values() if len(x) == 1]  # TODO paralelizar este for de alguna forma
 
-	print("Diffs index:")
-	print(idx)
+	csv_content = []
+	csv_header = []
 
-	for i in idx:
-		value = ""
+	print("Generating output dataframe...")
+	for i in tqdm(range(len(idx))):
+		row = []
 		for column_name in diff.columns:
-			value += str(diff[column_name][i]) + " "
-		value += os.linesep
-		print(value)
+			if i == 0:
+				csv_header.append(column_name)
+			row.append(diff[column_name][idx[i]])
+		csv_content.append(row)
+
+	print("Creating DataFrame to export to csv")
+	df_to_export = pd.DataFrame(csv_content, columns=csv_header)
+	print(df_to_export.head())
+	print("Exporting...")
+	df_to_export.to_csv("../output/diff_output.csv", sep=";", na_rep="NODATA", index=False)
+	print("Finished!")
 
 
 if __name__ == '__main__':
