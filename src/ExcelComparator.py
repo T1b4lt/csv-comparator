@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import pandas as pd
 
@@ -18,11 +19,21 @@ def main(cliargs):
 	print(file1.head())
 	print(file2.head())
 
-	for index, value in file1.iterrows():
-		row = ""
-		for column in value:
-			row += str(column) + " "
-		print(row)
+	diff = pd.concat([file1, file2])
+	diff = diff.reset_index(drop=True)
+	diff_gpby = diff.groupby(list(diff.columns))
+
+	idx = [x[0] for x in diff_gpby.groups.values() if len(x) == 1]
+
+	print("Diffs index:")
+	print(idx)
+
+	for i in idx:
+		value = ""
+		for column_name in diff.columns:
+			value += str(diff[column_name][i]) + " "
+		value += os.linesep
+		print(value)
 
 
 if __name__ == '__main__':
