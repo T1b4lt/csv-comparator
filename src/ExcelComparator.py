@@ -1,10 +1,19 @@
 import argparse
+import time
 
 import pandas as pd
+from joblib import Parallel, delayed
 from tqdm import tqdm
 
 
+def fun(arg):
+	if len(arg) == 1:
+		return arg[0]
+
+
 def main(cliargs):
+	t0 = time.time()
+
 	file1_name = cliargs.first
 	file2_name = cliargs.second
 
@@ -24,7 +33,8 @@ def main(cliargs):
 	diff_gpby = diff.groupby(list(diff.columns))
 
 	print("Collecting diffs...")
-	idx = [x[0] for x in diff_gpby.groups.values() if len(x) == 1]  # TODO paralelizar este for de alguna forma
+	idx = Parallel(n_jobs=-1, verbose=10, backend='multiprocessing')(map(delayed(fun), diff_gpby.groups.values()))
+	idx = list(filter(None, idx))
 
 	csv_content = []
 	csv_header = []
@@ -44,6 +54,7 @@ def main(cliargs):
 	print("Exporting...")
 	df_to_export.to_csv("../output/diff_output.csv", sep=";", na_rep="NODATA", index=False)
 	print("Finished!")
+	print(time.time() - t0, "seconds of execution")
 
 
 if __name__ == '__main__':
